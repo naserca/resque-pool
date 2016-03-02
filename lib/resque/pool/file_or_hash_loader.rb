@@ -34,7 +34,7 @@ module Resque
 
       def apply_environment(config, environment)
         environment and config[environment] and config.merge!(config[environment])
-        config.delete_if {|key, value| value.is_a? Hash }
+        config
       end
 
       def config_filename

@@ -377,7 +377,7 @@ module Resque
     end
 
     def all_known_queues
-      config.keys | workers.keys
+      config_queues.keys | workers.keys
     end
 
     # }}}
@@ -399,11 +399,24 @@ module Resque
     end
 
     def worker_delta_for(queues)
-      config.fetch(queues, 0) - workers.fetch(queues, []).size
+      (option_for(queues, 'count') || 0) - workers.fetch(queues, []).size
+    end
+
+    def config_queues
+      @config_queues ||= @config['queues']
     end
 
     def pids_for(queues)
       workers[queues].keys
+    end
+
+    def options_for(queues)
+      config_queues[queues]
+    end
+
+    def option_for(queues, option)
+      options = options_for(queues)
+      options && options[option]
     end
 
     def spawn_worker!(queues)
@@ -427,6 +440,7 @@ module Resque
       worker.pool_master_pid = Process.pid
       worker.term_timeout = ENV['RESQUE_TERM_TIMEOUT'] || 4.0
       worker.term_child = ENV['TERM_CHILD']
+      worker.jobs_per_fork = option_for(queues, :jobs_per_fork) if option_for(queues, :jobs_per_fork) && worker.respond_to?(:jobs_per_fork)
       if worker.respond_to?(:run_at_exit_hooks=)
         # resque doesn't support this until 1.24, but we support 1.22
         worker.run_at_exit_hooks = ENV['RUN_AT_EXIT_HOOKS'] || false
